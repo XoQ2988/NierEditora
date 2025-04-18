@@ -1,0 +1,6 @@
+[project]
+name = "NierEditora"
+version = "0.1.0"
+
+[project.scripts]
+niereditora = "nier_editora.cli:main"
