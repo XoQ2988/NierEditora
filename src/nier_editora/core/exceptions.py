@@ -22,7 +22,6 @@ class SerializationError(SaveEditorError):
     such as struct errors or insufficient bytes.
     """
 
-
 # Inventory management errors
 class InventoryError(SaveEditorError):
     """Base exception for all inventory-related operations"""
@@ -32,3 +31,7 @@ class InventoryFullError(InventoryError):
 
 class SlotIndexError(InventoryError):
     """Raised when a given slot index is out of the valid range"""
+
+# Translation errors
+class TranslationError(SaveEditorError):
+    """Base exception for all translation-related operations"""
