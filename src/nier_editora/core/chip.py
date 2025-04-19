@@ -55,6 +55,22 @@ class Chip:
     _STRUCT: ClassVar[struct.Struct] = struct.Struct(f"<{COUNT}i")
 
     @classmethod
+    def empty(cls, index: int) -> "Chip":
+        if not (0 <= index < INVENTORY_CHIPS_COUNT):
+            raise ValueError(f"Slot index {index} out of range")
+        return cls(
+            index=index,
+            base_code=-1,
+            base_id=-1,
+            chip_type=-1,
+            level=-1,
+            weight=-1,
+            slot_a=-1,
+            slot_b=-1,
+            slot_c=-1
+        )
+
+    @classmethod
     def read(cls, stream: io.BytesIO, index: int) -> "Chip":
         """
         Deserialize a Chip from the given byte stream.

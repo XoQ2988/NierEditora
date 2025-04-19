@@ -37,6 +37,20 @@ class Weapon:
     _STRUCT: ClassVar[struct.Struct] = struct.Struct(f"<{COUNT}i")
 
     @classmethod
+    def empty(cls, index: int) -> "Weapon":
+        if not (0 <= index < INVENTORY_WEAPON_COUNT):
+            raise ValueError(f"Slot index {index} out of range")
+        return cls(
+            index=index,
+            id=-1,
+            level=1,
+            is_new_item=True,
+            is_new_story=True,
+            enemies_defeated=0
+        )
+
+
+    @classmethod
     def read(cls, stream: io.BytesIO, index: int) -> "Weapon":
         """
         Deserialize a Weapon from the given byte stream.

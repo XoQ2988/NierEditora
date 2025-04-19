@@ -2,13 +2,12 @@ import logging
 import shutil
 import time
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, simpledialog
 from pathlib import Path
-from typing import Optional
+from tkinter import ttk, filedialog, messagebox, simpledialog
+from typing import Optional, Union
 
-from nier_editora.core import Item
+from nier_editora.core import Item, Weapon, Chip
 from nier_editora.core.constants import ITEM_LIST
-from nier_editora.core.enums import ItemStatus
 from nier_editora.core.i18n import translate_item
 from nier_editora.core.save import SaveFile
 
@@ -119,7 +118,7 @@ class NierEditoraGUI(tk.Tk):
         self.entry_xp.grid(row=1, column=3, sticky="EW")
         self.entry_xp.configure(validate="key", validatecommand=numeric)
 
-        # Row 4: Notebook for inventories
+        # Notebook for inventories
         self.notebook = ttk.Notebook(main)
         self.notebook.grid(row=4, column=0, columnspan=4, sticky="NSEW", pady=(10, 0))
         main.rowconfigure(4, weight=1)
@@ -147,15 +146,17 @@ class NierEditoraGUI(tk.Tk):
             ("idx", "Index", COL_WIDTHS["idx"]), ("name", "Chip", None),
             ("lvl", "Level", COL_WIDTHS["lvl"]), ("wgt", "Weight", COL_WIDTHS["wgt"])])
 
+        self.notebook.bind("<<NotebookTabChanged>>", lambda e: self._update_action_buttons())
+        for tree in (self.tree_items, self.tree_weapons, self.tree_chips):
+            tree.bind("<<TreeviewSelect>>", lambda e: self._update_action_buttons())
         self.tree_chips.bind("<Double-1>", self._on_chip_double_click)
-        self.tree_items.bind("<<TreeviewSelect>>", lambda e: self._update_item_buttons())
 
         # Add/Remove buttons
         btn_frame = ttk.Frame(main, padding=(2, 0))
         btn_frame.grid(row=4, column=3, sticky="NE", pady=(4, 0))
-        self.btn_add = ttk.Button(btn_frame, text="+", width=3, command=self._add_item, state="disabled")
+        self.btn_add = ttk.Button(btn_frame, text="+", width=3, command=self._on_add_click, state="disabled")
         self.btn_add.pack(side="right")
-        self.btn_remove = ttk.Button(btn_frame, text="–", width=3, command=self._remove_item, state="disabled")
+        self.btn_remove = ttk.Button(btn_frame, text="–", width=3, command=self._on_remove_click, state="disabled")
         self.btn_remove.pack(side="right", padx=5)
 
         # Status bar
@@ -181,6 +182,7 @@ class NierEditoraGUI(tk.Tk):
         tree.pack(fill="both", expand=True)
 
         return tree
+
 
     # File actions
     def load_save(self, path: Optional[Path] = None) -> None:
@@ -272,6 +274,7 @@ class NierEditoraGUI(tk.Tk):
         except Exception as e:
             logger.exception("Save failed")
             messagebox.showerror("Save Error", str(e))
+
 
     # Tool menu actions
     def _validate_save(self):
@@ -431,31 +434,65 @@ class NierEditoraGUI(tk.Tk):
 
         self._mark_dirty()
 
+    def _on_add_click(self):
+        tab = self.notebook.index("current")
+        if tab == 0:
+            self._add_item()
+        elif tab == 1:
+            self._add_weapon()
+        elif tab == 2:
+            self._add_chip()
+
+    def _on_remove_click(self):
+        tab = self.notebook.index("current")
+        if tab == 0:
+            self._remove_item()
+        elif tab == 1:
+            self._remove_weapon()
+        elif tab == 2:
+            self._remove_chip()
+
 
     # Misc
-    def _update_item_buttons(self):
-        # Only enable “+” if a save is loaded
+    def _update_action_buttons(self):
+        # “+” is always available once you’ve loaded a save
         if self.savefile:
             self.btn_add.state(["!disabled"])
         else:
             self.btn_add.state(["disabled"])
+            return
 
-        # Enable “–” only when a non‑empty slot is selected
-        sel = self.tree_items.selection()
-        if self.savefile and sel:
-            idx = int(sel[0])
-            slot = self.savefile.inventory.raw[idx]
-            if slot.id != -1:
-                self.btn_remove.state(["!disabled"])
-                return
-        self.btn_remove.state(["disabled"])
+        # Decide if “–” should be enabled
+        remove_ok = False
+        tab = self.notebook.index("current")
+        if tab == 0:
+            sel = self.tree_items.selection()
+            if sel:
+                slot = self.savefile.inventory.raw[int(sel[0])]
+                remove_ok = (slot.id != -1)
+        elif tab == 1:
+            sel = self.tree_weapons.selection()
+            if sel:
+                slot = self.savefile.weapons.raw[int(sel[0])]
+                remove_ok = (slot.id != -1)
+        else:
+            sel = self.tree_chips.selection()
+            if sel:
+                slot = self.savefile.chips.raw[int(sel[0])]
+                remove_ok = (slot.base_id != -1)
 
-    def _select_item_dialog(self) -> Optional[int]:
-        # Only include inventory items and fish
-        ALLOWED_PREFIXES = ("item_", "fish_")
+        if remove_ok:
+            self.btn_remove.state(["!disabled"])
+        else:
+            self.btn_remove.state(["disabled"])
+
+    def _select_item_dialog(self, allowed_prefixes: Union[bool(str), str]) -> Optional[int]:
+        if isinstance(allowed_prefixes, str):
+            allowed_prefixes = (allowed_prefixes,)
+
         raw_items = {
             k: v for k, v in ITEM_LIST.items()
-            if any(v.startswith(pref) for pref in ALLOWED_PREFIXES)
+            if any(v.startswith(pref) for pref in allowed_prefixes)
         }
 
         # Sort by ID
@@ -526,7 +563,7 @@ class NierEditoraGUI(tk.Tk):
         return selection["id"]
 
     def _add_item(self):
-        new_id = self._select_item_dialog()
+        new_id = self._select_item_dialog(("item_", "fish_"))
         if new_id is None:
             return
 
@@ -546,8 +583,6 @@ class NierEditoraGUI(tk.Tk):
         new_slot.quantity = 1
         self.savefile.inventory.raw[idx] = new_slot
 
-        print(new_slot)
-
         self.status.config(text=f"Added {self.savefile.inventory.raw[idx].name} at slot {idx}")
         self._populate_items()
         self._mark_dirty()
@@ -565,6 +600,70 @@ class NierEditoraGUI(tk.Tk):
 
         # Replace with an empty slot
         self.savefile.inventory.raw[idx] = Item.empty(idx)
+
+        # Refresh & mark dirty
+        self._populate_items()
+        self._mark_dirty()
+
+    def _add_weapon(self):
+        new_id = self._select_item_dialog("weapon_")
+        if new_id is None:
+            return
+
+        inv = self.savefile.weapons.raw
+        for slot in inv:
+            print(slot)
+            if slot.id == -1:
+                idx = slot.index
+                break
+        else:
+            messagebox.showwarning("Weapon Inventory Full", "No empty slots available.")
+            return
+
+
+        new_slot = Weapon.empty(idx)
+        new_slot.id = new_id
+        self.savefile.weapons.raw[idx] = new_slot
+
+        self.status.config(text=f"Added {self.savefile.inventory.raw[idx].name} at slot {idx}")
+        self._populate_items()
+        self._mark_dirty()
+
+    def _remove_weapon(self):
+        if not self.savefile:
+            return
+
+        sel = self.tree_weapons.selection()
+        if not sel:
+            messagebox.showwarning("No Selection", "Please select an item to remove.")
+            return
+
+        idx = int(sel[0])
+
+        # Replace with an empty slot
+        self.savefile.weapons.raw[idx] = Weapon.empty(idx)
+
+        # Refresh & mark dirty
+        self._populate_items()
+        self._mark_dirty()
+
+    def _add_chip(self):
+        messagebox.showerror("Not Implemented", "This feature is not yet stable\n"
+                                                  "Therefore, it isn't implemented in the GUI yet")
+
+    def _remove_chip(self):
+        if not self.savefile:
+            return
+
+        sel = self.tree_chips.selection()
+        if not sel:
+            messagebox.showwarning("No Selection", "Please select an item to remove.")
+            return
+
+        idx = int(sel[0])
+
+        # Replace with an empty slot
+        self.savefile.chips.raw[idx] = Chip.empty(idx)
 
         # Refresh & mark dirty
         self._populate_items()
