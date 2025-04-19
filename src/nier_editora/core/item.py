@@ -42,6 +42,17 @@ class Item:
     _STRUCT: ClassVar[struct.Struct] = struct.Struct(f"<{COUNT}i")
 
     @classmethod
+    def empty(cls, index: int) -> "Item":
+        if not (0 <= index < INVENTORY_ITEM_COUNT):
+            raise ValueError(f"Slot index {index} out of range")
+        return cls(
+            index=index,
+            id=-1,
+            status=ItemStatus.INACTIVE,
+            quantity=0
+        )
+
+    @classmethod
     def read(cls, stream: io.BytesIO, index: int) -> "Item":
         """
         Deserialize an Item from the given byte stream.

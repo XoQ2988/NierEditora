@@ -46,7 +46,7 @@ class SaveFile:
             self.chips: Chip inventory.
         """
         self._raw: bytes = b""
-        self._is_console: bool = False
+        self.is_console: bool = False
 
         self.header_id: bytes = b""
         self.play_time: int = 0
@@ -93,7 +93,7 @@ class SaveFile:
         logger.debug(f"Loading save, raw size={length}")
 
         if length == constants.CONSOLE_SAVE_SIZE:
-            self._is_console = True
+            self.is_console = True
             logger.info("Detected console-format save; converting to PC format")
             save_data = console_to_pc(save_data)
         elif length != constants.PC_SAVE_SIZE:
@@ -194,8 +194,11 @@ class SaveFile:
         buf.write(self.chapter.to_bytes(4, "little", signed=True))
 
         buf.seek(constants.OFF_PLAYER_NAME)
-        name_bytes = self.player_name.encode("utf-16-le")
-        buf.write(name_bytes + b"\x00\x00")
+        encoded = self.player_name.encode("utf-16-le")
+        if len(encoded) > constants.LEN_PLAYER_NAME:
+            encoded = encoded[:constants.LEN_PLAYER_NAME]
+        encoded = encoded.ljust(constants.LEN_PLAYER_NAME, b'\x00')
+        buf.write(encoded)
 
         # Money and XP
         buf.seek(constants.OFF_MONEY)
@@ -214,7 +217,7 @@ class SaveFile:
         self.chips.write(buf)
 
         result = buf.getvalue()
-        if self._is_console:
+        if self.is_console:
             logger.info("Converting PC data back to console format")
             result = pc_to_console(result)
 
