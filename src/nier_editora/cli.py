@@ -3,6 +3,9 @@ import logging
 import sys
 from pathlib import Path
 
+from PySide6.QtWidgets import QApplication
+
+from nier_editora.ui.main_window import NierEditoraUI
 from .logging_config import setup_logging
 from .core.save import SaveFile
 from utils import console_to_pc, pc_to_console
@@ -98,13 +101,24 @@ def cmd_convert(args: argparse.Namespace) -> None:
             out_data = pc_to_console(data)
             direction = 'PC → Console'
         logger.info("Conversion %s successful for %s", direction, args.file)
-    except Exception as e:
+    except Exception:
         logger.exception("Conversion failed for %s", args.file)
         sys.exit(1)
 
     destination = args.output or args.file
     destination.write_bytes(out_data)
     print(f"Converted ({direction}) and wrote to {destination}")
+
+def cmd_gui(args: argparse.Namespace) -> None:
+    """
+    Launch the PySide6 GUI.
+    """
+    logger.debug("Launching GUI...")
+    app = QApplication(sys.argv)
+    window = NierEditoraUI()
+    window.show()
+
+    sys.exit(app.exec())
 
 def main() -> int:
     """
@@ -153,6 +167,10 @@ def main() -> int:
     group.add_argument("--to-console", action="store_true",
                        help="Convert PC save → console format")
     p_conv.set_defaults(func=cmd_convert)
+
+    # gui subcommand
+    p_gui = subparsers.add_parser("gui", help="Launch the Qt-based GUI")
+    p_gui.set_defaults(func=cmd_gui)
 
     args = parser.parse_args()
 

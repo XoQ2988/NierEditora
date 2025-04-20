@@ -519,8 +519,8 @@ class NierEditoraGUI(tk.Tk):
         sb.pack(side="right", fill="y")
         listbox.configure(yscrollcommand=sb.set)
 
-        def format_entry(k, raw):
-            name = translate_item(k) or raw
+        def format_entry(k, r):
+            name = translate_item(k) or r
             return f"{hex(k)}: {name}"
 
         # Populate full list
@@ -531,16 +531,17 @@ class NierEditoraGUI(tk.Tk):
         def on_filter(*_):
             flt = filter_var.get().lower()
             listbox.delete(0, "end")
-            for k, raw in items:
-                name = translate_item(k) or raw
+            for k, r in items:
+                name = translate_item(k) or r
                 if flt in name.lower() or flt in hex(k):
-                    listbox.insert("end", format_entry(k, raw))
+                    listbox.insert("end", format_entry(k, r))
 
         filter_var.trace_add("write", on_filter)
 
         # Capture selection
         selection: dict = {"id": None}
 
+        # noinspection PyUnusedLocal
         def choose(event=None):
             sel = listbox.curselection()
             if not sel:
@@ -553,10 +554,10 @@ class NierEditoraGUI(tk.Tk):
         listbox.bind("<Double-Button-1>", choose)
 
         # OK / Cancel
-        btns = ttk.Frame(dialog)
-        btns.pack(fill="x", pady=(0, 5))
-        ttk.Button(btns, text="OK", command=choose).pack(side="left", padx=5)
-        ttk.Button(btns, text="Cancel", command=dialog.destroy).pack(side="right", padx=5)
+        buttons = ttk.Frame(dialog)
+        buttons.pack(fill="x", pady=(0, 5))
+        ttk.Button(buttons, text="OK", command=choose).pack(side="left", padx=5)
+        ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(side="right", padx=5)
 
         entry.focus()
         self.wait_window(dialog)
@@ -648,8 +649,9 @@ class NierEditoraGUI(tk.Tk):
         self._mark_dirty()
 
     def _add_chip(self):
-        messagebox.showerror("Not Implemented", "This feature is not yet stable\n"
-                                                  "Therefore, it isn't implemented in the GUI yet")
+        if self.savefile:
+            messagebox.showerror("Not Implemented", "This feature is not yet stable\n"
+                                                      "Therefore, it isn't implemented in the GUI yet")
 
     def _remove_chip(self):
         if not self.savefile:

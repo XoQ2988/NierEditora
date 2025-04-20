@@ -2,21 +2,24 @@
 [![PyPI version](https://img.shields.io/pypi/v/NierEditora.svg)](https://pypi.org/project/NierEditora)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A cross‑platform save editor for _NieR:Automata_, supporting both PC and PS4/5 formats.
-Work with it via a command‑line interface, or GUI (tbi)
+A cross‑platform save editor for _NieR:Automata_, supporting both PC and PS4/5 formats.  
+Work with it via a command‑line interface **and** a Qt‑based GUI.
 
 ---
 
 ## Features
 
-
-- **Dual-format support**: **_Read and write_** both PC (SlotData_*.dat) and PS4 (GameData) save files.
-- **CLI ~~& GUI~~**: Command‑line tools for scripting and batch operations, GUI is planned
-- **Core edits**: 
-  - **_View and change_** Player Name, Play Time, Money, and XP.
-  - **_Convert_** saves PC ↔ Console format.
-- **Pluggable**: Easily extend with inventory dumps, weapon/chip editors, and localization.
-- **i18n skeleton**: Out-of-the-box support for **_translating_** all item names (as if anyone would do that)
+- **Dual-format support**: **_Read and write_** both PC (`SlotData_*.dat`) and PS4 (`GameData`) save files.
+- **CLI & GUI**:  
+  - **CLI** for scripting and batch operations (`niereditora info`, `set`, `convert`, etc.)  
+  - **Qt6 GUI**—fully implemented with PySide6 for editing name, play time, money, XP, inventory, weapons, and chips.
+- **Core edits**:  
+  - **_View and change_** Player Name, Play Time, Money, and XP.  
+  - **_Convert_** saves PC ↔ Console format.  
+  - **_Inventory editors_** for items, weapons, and chips (chip‑adding currently marked experimental; one‑time warning on first use).
+- **Real‑time XP↔Level sync**: Editing XP updates Level field and vice versa.
+- **Pluggable architecture**: Easily extend with new inventory dumps, custom editors, and localization.
+- **i18n skeleton**: Out‑of‑the‑box support for **_translating_** all item names.
 
 ## Installation
 ```shell
